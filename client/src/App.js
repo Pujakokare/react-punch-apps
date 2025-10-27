@@ -47,9 +47,9 @@ export default function App() {
 
   function getGreeting() {
     const hour = new Date().getHours();
-    if (hour < 12) return "Good morning ☀️";
-    if (hour < 17) return "Good afternoon 🌤️";
-    return "Good evening 🌙";
+    if (hour < 12) return "🌞 Good morning! Have a productive day ahead.";
+    if (hour < 17) return "🌤️ Good afternoon! Keep up the great work.";
+    return "🌙 Good evening! Great job finishing strong today.";
   }
 
   async function submitPunch() {
