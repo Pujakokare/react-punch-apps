@@ -6,49 +6,55 @@ const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Serve React build (for Render)
+// ✅ Serve React build for Render
 const clientBuildPath = path.join(__dirname, "../client/build");
 app.use(express.static(clientBuildPath));
 
-// Temporary in-memory data
+// ✅ Temporary in-memory punches
 let punches = [];
 
-// Healthcheck route (for Render)
+// ✅ Health check route
 app.get("/healthcheck", (req, res) => {
   res.json({ status: "ok" });
 });
 
-// Add punch
+// ✅ Save punch
 app.post("/punch", (req, res) => {
   try {
     const { punchTime } = req.body;
+
+    // Validate input
+    if (!punchTime) {
+      return res.status(400).json({ error: "punchTime is required" });
+    }
+
     const id = `punch_${Date.now()}`;
-    punches.push({ id, punchTime });
+    const punch = { id, punchTime };
+    punches.push(punch);
+
+    console.log("✅ Punch saved:", punch);
     res.json({ success: true, id });
   } catch (err) {
-    console.error("Error saving punch:", err);
-    res.status(500).json({ error: err.message });
+    console.error("❌ Error saving punch:", err);
+    res.status(500).json({ error: "Internal server error" });
   }
 });
 
-// Get all punches
+// ✅ Get all punches
 app.get("/punches", (req, res) => {
   res.json(punches);
 });
 
-// Catch-all for React routes
+// ✅ Catch-all route for React
 app.get("*", (req, res) => {
   res.sendFile(path.join(clientBuildPath, "index.html"));
 });
 
-// Start server
+// ✅ Start server
 const PORT = process.env.PORT || 10000;
 app.listen(PORT, () => {
-  console.log(`🚀 Server is running on port ${PORT}`);
+  console.log(`🚀 Server running on port ${PORT}`);
 });
-
-
-
 
 
 
