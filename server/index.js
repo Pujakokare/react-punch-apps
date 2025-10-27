@@ -19,7 +19,7 @@ app.get("/healthcheck", (req, res) => {
 });
 
 // ✅ Save punch
-app.post("/punch", (req, res) => {
+app.post("/api/punch", (req, res) => {
   try {
     const { punchTime } = req.body;
 
@@ -41,7 +41,7 @@ app.post("/punch", (req, res) => {
 });
 
 // ✅ Get all punches
-app.get("/punches", (req, res) => {
+app.get("/api/punches", (req, res) => {
   res.json(punches);
 });
 
