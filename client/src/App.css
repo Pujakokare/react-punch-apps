@@ -1,65 +1,72 @@
-body {
-  font-family: Arial, sans-serif;
-  background: #f7f9fc;
+body, html, #root {
   margin: 0;
-  padding: 20px;
+  padding: 0;
+  height: 100%;
+  font-family: "Segoe UI", Roboto, Arial, sans-serif;
+  background: #f0f4f8;
 }
 
 .app {
-  max-width: 760px;
-  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  min-height: 100vh;
+  padding: 40px 20px;
 }
 
-h1, h2 {
-  color: #222;
+h1 {
+  color: #333;
+  margin-bottom: 20px;
 }
 
 .card {
-  background: #fff;
-  padding: 16px;
-  border-radius: 10px;
-  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
-  margin-bottom: 16px;
+  background: white;
+  border-radius: 16px;
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  padding: 24px;
+  margin-bottom: 20px;
+  width: 100%;
+  max-width: 600px;
 }
 
 .row {
   margin-bottom: 12px;
 }
 
-input[type="text"], input[type="datetime-local"], input[type="search"], input[type="email"], textarea {
-  margin-left: 8px;
-  padding: 6px 8px;
-  border-radius: 6px;
-  border: 1px solid #ddd;
-}
-
 button {
-  padding: 8px 12px;
-  border-radius: 8px;
-  border: none;
-  cursor: pointer;
-  background: #2563eb;
+  background-color: #2563eb;
   color: white;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 8px;
+  cursor: pointer;
+  font-weight: 600;
+  transition: background 0.3s;
 }
 
-button:hover { opacity: 0.95; }
+button:hover {
+  background-color: #1e40af;
+}
 
 .punch-list {
   list-style: none;
   padding: 0;
-  margin: 0;
 }
 
 .punch-item {
+  background: #f9fafb;
+  border-radius: 8px;
+  margin-bottom: 8px;
   padding: 10px;
-  border-bottom: 1px dashed #eee;
 }
 
-.punch-item .note {
+.note {
+  font-style: italic;
   color: #555;
 }
 
-.punch-item .meta {
+.meta {
   font-size: 12px;
   color: #888;
 }
