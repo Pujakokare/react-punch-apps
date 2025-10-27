@@ -1,6 +1,8 @@
 import express from "express";
 import cors from "cors";
 import couchbase from "couchbase";
+import path from "path";
+import { fileURLToPath } from "url";   // ✅ THIS WAS MISSING
 
 const app = express();
 app.use(express.json());
