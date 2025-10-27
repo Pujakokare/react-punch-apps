@@ -51,4 +51,25 @@ app.get("/api/punches", async (req, res) => {
   }
 });
 
+//app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
+
+
+
+
+
+
+// ------------------------------------------------------------
+// ✅ SERVE REACT FRONTEND (VERY IMPORTANT FOR RENDER)
+// ------------------------------------------------------------
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+app.use(express.static(path.join(__dirname, "../client/build")));
+
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/build/index.html"));
+});
+
+
+// ✅ START SERVER
 app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
