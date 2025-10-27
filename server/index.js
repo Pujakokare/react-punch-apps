@@ -2,7 +2,7 @@ import express from "express";
 import cors from "cors";
 import couchbase from "couchbase";
 import path from "path";
-import { fileURLToPath } from "url";   // ✅ THIS WAS MISSING
+import { fileURLToPath } from "url";
 
 const app = express();
 app.use(express.json());
@@ -10,6 +10,7 @@ app.use(cors());
 
 const port = process.env.PORT || 3001;
 
+// ✅ Couchbase Connection
 const connectToCouchbase = async () => {
   try {
     const cluster = await couchbase.connect(process.env.COUCHBASE_CONNSTR, {
@@ -19,18 +20,19 @@ const connectToCouchbase = async () => {
     const bucket = cluster.bucket(process.env.COUCHBASE_BUCKET);
     const collection = bucket.defaultCollection();
     console.log("✅ Connected to Couchbase");
-    return collection;
+    return { cluster, collection };
   } catch (err) {
     console.error("❌ Couchbase connection failed:", err);
     process.exit(1);
   }
 };
 
-let collectionPromise = connectToCouchbase();
+let connectionPromise = connectToCouchbase();
 
+// ✅ Punch In (Save Time)
 app.post("/api/punch", async (req, res) => {
   try {
-    const collection = await collectionPromise;
+    const { collection } = await connectionPromise;
     const punch = { time: req.body.time, createdAt: new Date().toISOString() };
     const key = `punch_${Date.now()}`;
     await collection.upsert(key, punch);
@@ -41,28 +43,20 @@ app.post("/api/punch", async (req, res) => {
   }
 });
 
+// ✅ Fetch Last 10 Punches (Fixed)
 app.get("/api/punches", async (req, res) => {
   try {
-    const collection = await collectionPromise;
-    const result = await collection.getAllScopesAndCollections();
-    // Simplified retrieval for demo (you can later switch to N1QL query)
-    res.send([{ time: "Sample Data (DB Query to be extended)" }]);
+    const { cluster } = await connectionPromise;
+    const query = `SELECT time FROM \`${process.env.COUCHBASE_BUCKET}\` ORDER BY createdAt DESC LIMIT 10`;
+    const result = await cluster.query(query);
+    res.send(result.rows);
   } catch (err) {
-    console.error(err);
+    console.error("❌ Error fetching punches:", err);
     res.status(500).send({ error: "Failed to fetch punches" });
   }
 });
 
-//app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
-
-
-
-
-
-
-// ------------------------------------------------------------
-// ✅ SERVE REACT FRONTEND (VERY IMPORTANT FOR RENDER)
-// ------------------------------------------------------------
+// ✅ Serve React Frontend
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
@@ -72,6 +66,5 @@ app.get("*", (req, res) => {
   res.sendFile(path.join(__dirname, "../client/build/index.html"));
 });
 
-
-// ✅ START SERVER
+// ✅ Start Server
 app.listen(port, () => console.log(`🚀 Server running on port ${port}`));
