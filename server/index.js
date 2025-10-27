@@ -21,7 +21,9 @@ app.get("/healthcheck", (req, res) => {
 // ✅ Save punch
 app.post("/api/punch", (req, res) => {
   try {
-    const { punchTime } = req.body;
+    //const { punchTime } = req.body;
+    const punchTime = req.body.punchTime || req.body.time;
+    const note = req.body.note || "";
 
     // Validate input
     if (!punchTime) {
@@ -29,11 +31,13 @@ app.post("/api/punch", (req, res) => {
     }
 
     const id = `punch_${Date.now()}`;
-    const punch = { id, punchTime };
+    //const punch = { id, punchTime };
+    const punch = { id, time: punchTime, note, createdAt: new Date().toISOString() };
     punches.push(punch);
 
     console.log("✅ Punch saved:", punch);
-    res.json({ success: true, id });
+    //res.json({ success: true, id });
+    res.json({ success: true, punch });
   } catch (err) {
     console.error("❌ Error saving punch:", err);
     res.status(500).json({ error: "Internal server error" });
