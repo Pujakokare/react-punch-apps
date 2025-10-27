@@ -1,32 +1,17 @@
 const express = require("express");
 const cors = require("cors");
-const couchbase = require("couchbase");
+const path = require("path");
+// const couchbase = require("couchbase"); // disabled for now
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Couchbase connection
-const clusterConnStr = "couchbase://localhost";
-const username = "Administrator";
-const password = "password";
-const bucketName = "punches";
+// Serve React build (for Render)
+app.use(express.static(path.join(__dirname, "../client/build")));
 
-let bucket, collection;
-
-(async () => {
-  try {
-    const cluster = await couchbase.connect(clusterConnStr, {
-      username,
-      password,
-    });
-    bucket = cluster.bucket(bucketName);
-    collection = bucket.defaultCollection();
-    console.log(`✅ Connected to Couchbase bucket: ${bucketName}`);
-  } catch (err) {
-    console.error("❌ Couchbase connection error:", err);
-  }
-})();
+// Simulated data store (until Couchbase cloud setup)
+const punches = [];
 
 // Routes
 app.get("/healthcheck", (req, res) => {
@@ -37,7 +22,7 @@ app.post("/punch", async (req, res) => {
   try {
     const { punchTime } = req.body;
     const id = `punch_${Date.now()}`;
-    await collection.upsert(id, { punchTime });
+    punches.push({ id, punchTime });
     res.json({ success: true, id });
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -46,19 +31,18 @@ app.post("/punch", async (req, res) => {
 
 app.get("/punches", async (req, res) => {
   try {
-    const query = `SELECT META().id, punchTime FROM \`${bucketName}\``;
-    const result = await bucket.scope("_default").query(query);
-    res.json(result.rows);
+    res.json(punches);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
 });
 
+// React frontend catch-all
+app.get("*", (req, res) => {
+  res.sendFile(path.join(__dirname, "../client/build", "index.html"));
+});
+
 // Start server
-const PORT = process.env.PORT || 4000;
-app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`));
-
-
 
 
 
