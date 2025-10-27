@@ -1,48 +1,113 @@
 const express = require("express");
 const cors = require("cors");
 const path = require("path");
-// const couchbase = require("couchbase"); // disabled for now
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
 // Serve React build (for Render)
-app.use(express.static(path.join(__dirname, "../client/build")));
+const clientBuildPath = path.join(__dirname, "../client/build");
+app.use(express.static(clientBuildPath));
 
-// Simulated data store (until Couchbase cloud setup)
-const punches = [];
+// Temporary in-memory data
+let punches = [];
 
-// Routes
+// Healthcheck route (for Render)
 app.get("/healthcheck", (req, res) => {
   res.json({ status: "ok" });
 });
 
-app.post("/punch", async (req, res) => {
+// Add punch
+app.post("/punch", (req, res) => {
   try {
     const { punchTime } = req.body;
     const id = `punch_${Date.now()}`;
     punches.push({ id, punchTime });
     res.json({ success: true, id });
   } catch (err) {
+    console.error("Error saving punch:", err);
     res.status(500).json({ error: err.message });
   }
 });
 
-app.get("/punches", async (req, res) => {
-  try {
-    res.json(punches);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
+// Get all punches
+app.get("/punches", (req, res) => {
+  res.json(punches);
 });
 
-// React frontend catch-all
+// Catch-all for React routes
 app.get("*", (req, res) => {
-  res.sendFile(path.join(__dirname, "../client/build", "index.html"));
+  res.sendFile(path.join(clientBuildPath, "index.html"));
 });
 
 // Start server
+const PORT = process.env.PORT || 10000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server is running on port ${PORT}`);
+});
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+// const express = require("express");
+// const cors = require("cors");
+// const path = require("path");
+// // const couchbase = require("couchbase"); // disabled for now
+
+// const app = express();
+// app.use(cors());
+// app.use(express.json());
+
+// // Serve React build (for Render)
+// app.use(express.static(path.join(__dirname, "../client/build")));
+
+// // Simulated data store (until Couchbase cloud setup)
+// const punches = [];
+
+// // Routes
+// app.get("/healthcheck", (req, res) => {
+//   res.json({ status: "ok" });
+// });
+
+// app.post("/punch", async (req, res) => {
+//   try {
+//     const { punchTime } = req.body;
+//     const id = `punch_${Date.now()}`;
+//     punches.push({ id, punchTime });
+//     res.json({ success: true, id });
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// app.get("/punches", async (req, res) => {
+//   try {
+//     res.json(punches);
+//   } catch (err) {
+//     res.status(500).json({ error: err.message });
+//   }
+// });
+
+// // React frontend catch-all
+// app.get("*", (req, res) => {
+//   res.sendFile(path.join(__dirname, "../client/build", "index.html"));
+// });
+
+// // Start server
 
 
 
