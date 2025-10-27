@@ -41,3 +41,15 @@ input {
   z-index: 9999;
   pointer-events: auto !important;
 }
+/* FORCE REMOVE any fullscreen overlay blocking clicks */
+* {
+  pointer-events: auto !important;
+}
+
+html, body, #root {
+  height: 100%;
+  width: 100%;
+  overflow: visible !important;
+  position: relative !important;
+  z-index: 1 !important;
+}
