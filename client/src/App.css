@@ -1,5 +1,85 @@
 body {
   font-family: Arial, sans-serif;
+  background: #f7f9fc;
+  margin: 0;
+  padding: 20px;
+}
+
+.app {
+  max-width: 760px;
+  margin: 0 auto;
+}
+
+h1, h2 {
+  color: #222;
+}
+
+.card {
+  background: #fff;
+  padding: 16px;
+  border-radius: 10px;
+  box-shadow: 0 6px 18px rgba(0,0,0,0.06);
+  margin-bottom: 16px;
+}
+
+.row {
+  margin-bottom: 12px;
+}
+
+input[type="text"], input[type="datetime-local"], input[type="search"], input[type="email"], textarea {
+  margin-left: 8px;
+  padding: 6px 8px;
+  border-radius: 6px;
+  border: 1px solid #ddd;
+}
+
+button {
+  padding: 8px 12px;
+  border-radius: 8px;
+  border: none;
+  cursor: pointer;
+  background: #2563eb;
+  color: white;
+}
+
+button:hover { opacity: 0.95; }
+
+.punch-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.punch-item {
+  padding: 10px;
+  border-bottom: 1px dashed #eee;
+}
+
+.punch-item .note {
+  color: #555;
+}
+
+.punch-item .meta {
+  font-size: 12px;
+  color: #888;
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* body {
+  font-family: Arial, sans-serif;
   background-color: #f3f4f6;
   margin: 0;
   padding: 20px;
@@ -63,14 +143,10 @@ button {
   pointer-events: auto !important;
 }
 
-
-
-
-
 html, body, #root {
   height: 100%;
   width: 100%;
   overflow: visible !important;
   position: relative !important;
   z-index: 1 !important;
-}
+} */ */ */
