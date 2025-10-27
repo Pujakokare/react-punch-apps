@@ -1,3 +1,4 @@
+// client/src/App.js
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import "./App.css";
@@ -22,7 +23,6 @@ export default function App() {
 
   useEffect(() => {
     fetchPunches();
-    // poll every 10s to keep it fresh (optional)
     const id = setInterval(fetchPunches, 10000);
     return () => clearInterval(id);
   }, []);
@@ -62,14 +62,15 @@ export default function App() {
     }
   };
 
-  // Determine whether there is an open punch (latest record with null punchOut)
-  const latestOpen = punches.length ? punches.find(p => !p.punchOut) : null;
+  const latestOpen = punches.length ? punches.find((p) => !p.punchOut) : null;
 
   return (
     <div className="container">
       <h1>⏰ Punch In / Out</h1>
 
-      <p><strong>Local Time:</strong> {new Date().toLocaleString()}</p>
+      <p>
+        <strong>Local Time:</strong> {new Date().toLocaleString()}
+      </p>
 
       <div className="controls">
         <input
@@ -95,9 +96,7 @@ export default function App() {
       </div>
 
       {message && (
-        <div className={`msg ${message.type === "error" ? "error" : "success"}`}>
-          {message.text}
-        </div>
+        <div className={`msg ${message.type === "error" ? "error" : "success"}`}>{message.text}</div>
       )}
 
       <h3>History (latest first)</h3>
