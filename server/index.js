@@ -1,118 +1,186 @@
-// server/index.js
-import express from "express";
-import cors from "cors";
-import couchbase from "couchbase";
-import path from "path";
-import { fileURLToPath } from "url";
-import { v4 as uuidv4 } from "uuid";
-
-
-const express = require('express');
-const cors = require('cors');
-const couchbase = require('couchbase');
+const express = require("express");
+const cors = require("cors");
+const couchbase = require("couchbase");
 
 const app = express();
 app.use(cors());
 app.use(express.json());
 
-// Environment variables (set on Render)
-const COUCHBASE_CONNSTR = process.env.COUCHBASE_CONNSTR;
-const COUCHBASE_USER = process.env.COUCHBASE_USER;
-const COUCHBASE_PASSWORD = process.env.COUCHBASE_PASSWORD;
-const COUCHBASE_BUCKET = process.env.COUCHBASE_BUCKET || 'punches';
-const PORT = process.env.SERVER_PORT || 4000;
+// Couchbase connection
+const clusterConnStr = "couchbase://localhost";
+const username = "Administrator";
+const password = "password";
+const bucketName = "punches";
 
-if (!COUCHBASE_CONNSTR || !COUCHBASE_USER || !COUCHBASE_PASSWORD) {
-  console.error('Missing Couchbase environment variables. Set COUCHBASE_CONNSTR, COUCHBASE_USER, COUCHBASE_PASSWORD.');
-  // do not exit to allow Render to show logs; but endpoints will fail until vars present
-}
+let bucket, collection;
 
-let cluster, bucket, collection;
-
-// Async IIFE to connect to Couchbase
 (async () => {
   try {
-    cluster = await couchbase.connect(COUCHBASE_CONNSTR, {
-      username: COUCHBASE_USER,
-      password: COUCHBASE_PASSWORD
+    const cluster = await couchbase.connect(clusterConnStr, {
+      username,
+      password,
     });
-    bucket = cluster.bucket(COUCHBASE_BUCKET);
+    bucket = cluster.bucket(bucketName);
     collection = bucket.defaultCollection();
-
-    // Create primary index if not exists (needed for N1QL queries)
-    try {
-      const query = `CREATE PRIMARY INDEX IF NOT EXISTS ON \`${COUCHBASE_BUCKET}\``;
-      await cluster.query(query);
-      console.log('Ensured primary index exists on bucket', COUCHBASE_BUCKET);
-    } catch (err) {
-      console.warn('Primary index creation failed or not necessary:', err.message);
-    }
-
-    console.log('Connected to Couchbase bucket:', COUCHBASE_BUCKET);
+    console.log(`✅ Connected to Couchbase bucket: ${bucketName}`);
   } catch (err) {
-    console.error('Couchbase connection error:', err);
+    console.error("❌ Couchbase connection error:", err);
   }
 })();
 
-// Utility to generate document ID
-function generateId() {
-  return `punch::${Date.now()}::${Math.random().toString(36).substr(2, 6)}`;
-}
+// Routes
+app.get("/healthcheck", (req, res) => {
+  res.json({ status: "ok" });
+});
 
-// POST /api/punch
-// Body: { time: ISOString, note?: string }
-app.post('/api/punch', async (req, res) => {
-  const { time, note } = req.body;
-  if (!time) return res.status(400).json({ error: 'Missing time field' });
-
-  const id = generateId();
-  const doc = {
-    type: 'punch',
-    time,            // ISO string of the punch time (user provided or client local)
-    note: note || null,
-    createdAt: new Date().toISOString()
-  };
-
+app.post("/punch", async (req, res) => {
   try {
-    await collection.insert(id, doc);
-    return res.status(201).json({ id, doc });
+    const { punchTime } = req.body;
+    const id = `punch_${Date.now()}`;
+    await collection.upsert(id, { punchTime });
+    res.json({ success: true, id });
   } catch (err) {
-    console.error('Insert error:', err);
-    return res.status(500).json({ error: 'Failed to store punch' });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// GET /api/punches
-// Returns latest 100 punches ordered by time descending
-app.get('/api/punches', async (req, res) => {
+app.get("/punches", async (req, res) => {
   try {
-    const q = `
-      SELECT meta().id, p.*
-      FROM \`${COUCHBASE_BUCKET}\` p
-      WHERE p.type = "punch"
-      ORDER BY p.time DESC
-      LIMIT 100
-    `;
-    const result = await cluster.query(q);
-    const rows = result.rows.map(r => {
-      // meta().id is included as `id` field
-      return r;
-    });
-    return res.json(rows);
+    const query = `SELECT META().id, punchTime FROM \`${bucketName}\``;
+    const result = await bucket.scope("_default").query(query);
+    res.json(result.rows);
   } catch (err) {
-    console.error('Query error:', err);
-    return res.status(500).json({ error: 'Failed to fetch punches' });
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Health check
-app.get('/api/health', (req, res) => {
-  res.json({ status: 'ok' });
-});
+// Start server
+const PORT = process.env.PORT || 4000;
+app.listen(PORT, () => console.log(`🚀 Server listening on port ${PORT}`));
 
-app.listen(PORT, () => {
-  console.log(`Server listening on port ${PORT}`);
-});
+
+
+
+
+
+
+
+
+// // server/index.js
+// import express from "express";
+// import cors from "cors";
+// import couchbase from "couchbase";
+// import path from "path";
+// import { fileURLToPath } from "url";
+// import { v4 as uuidv4 } from "uuid";
+
+
+// const express = require('express');
+// const cors = require('cors');
+// const couchbase = require('couchbase');
+
+// const app = express();
+// app.use(cors());
+// app.use(express.json());
+
+// // Environment variables (set on Render)
+// const COUCHBASE_CONNSTR = process.env.COUCHBASE_CONNSTR;
+// const COUCHBASE_USER = process.env.COUCHBASE_USER;
+// const COUCHBASE_PASSWORD = process.env.COUCHBASE_PASSWORD;
+// const COUCHBASE_BUCKET = process.env.COUCHBASE_BUCKET || 'punches';
+// const PORT = process.env.SERVER_PORT || 4000;
+
+// if (!COUCHBASE_CONNSTR || !COUCHBASE_USER || !COUCHBASE_PASSWORD) {
+//   console.error('Missing Couchbase environment variables. Set COUCHBASE_CONNSTR, COUCHBASE_USER, COUCHBASE_PASSWORD.');
+//   // do not exit to allow Render to show logs; but endpoints will fail until vars present
+// }
+
+// let cluster, bucket, collection;
+
+// // Async IIFE to connect to Couchbase
+// (async () => {
+//   try {
+//     cluster = await couchbase.connect(COUCHBASE_CONNSTR, {
+//       username: COUCHBASE_USER,
+//       password: COUCHBASE_PASSWORD
+//     });
+//     bucket = cluster.bucket(COUCHBASE_BUCKET);
+//     collection = bucket.defaultCollection();
+
+//     // Create primary index if not exists (needed for N1QL queries)
+//     try {
+//       const query = `CREATE PRIMARY INDEX IF NOT EXISTS ON \`${COUCHBASE_BUCKET}\``;
+//       await cluster.query(query);
+//       console.log('Ensured primary index exists on bucket', COUCHBASE_BUCKET);
+//     } catch (err) {
+//       console.warn('Primary index creation failed or not necessary:', err.message);
+//     }
+
+//     console.log('Connected to Couchbase bucket:', COUCHBASE_BUCKET);
+//   } catch (err) {
+//     console.error('Couchbase connection error:', err);
+//   }
+// })();
+
+// // Utility to generate document ID
+// function generateId() {
+//   return `punch::${Date.now()}::${Math.random().toString(36).substr(2, 6)}`;
+// }
+
+// // POST /api/punch
+// // Body: { time: ISOString, note?: string }
+// app.post('/api/punch', async (req, res) => {
+//   const { time, note } = req.body;
+//   if (!time) return res.status(400).json({ error: 'Missing time field' });
+
+//   const id = generateId();
+//   const doc = {
+//     type: 'punch',
+//     time,            // ISO string of the punch time (user provided or client local)
+//     note: note || null,
+//     createdAt: new Date().toISOString()
+//   };
+
+//   try {
+//     await collection.insert(id, doc);
+//     return res.status(201).json({ id, doc });
+//   } catch (err) {
+//     console.error('Insert error:', err);
+//     return res.status(500).json({ error: 'Failed to store punch' });
+//   }
+// });
+
+// // GET /api/punches
+// // Returns latest 100 punches ordered by time descending
+// app.get('/api/punches', async (req, res) => {
+//   try {
+//     const q = `
+//       SELECT meta().id, p.*
+//       FROM \`${COUCHBASE_BUCKET}\` p
+//       WHERE p.type = "punch"
+//       ORDER BY p.time DESC
+//       LIMIT 100
+//     `;
+//     const result = await cluster.query(q);
+//     const rows = result.rows.map(r => {
+//       // meta().id is included as `id` field
+//       return r;
+//     });
+//     return res.json(rows);
+//   } catch (err) {
+//     console.error('Query error:', err);
+//     return res.status(500).json({ error: 'Failed to fetch punches' });
+//   }
+// });
+
+// // Health check
+// app.get('/api/health', (req, res) => {
+//   res.json({ status: 'ok' });
+// });
+
+// app.listen(PORT, () => {
+//   console.log(`Server listening on port ${PORT}`);
+// });
 
 
 
