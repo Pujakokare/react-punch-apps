@@ -41,6 +41,10 @@ export default function App() {
   const [greetingVisible, setGreetingVisible] = useState("");
   const [isDarkVariant, setIsDarkVariant] = useState(false);
 
+
+    // For backend API calls — update this to your deployed backend URL if needed
+  const API_BASE = "";
+  
   // init: if user session exists
   useEffect(() => {
     const accounts = msalInstance.getAllAccounts();
