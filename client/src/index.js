@@ -8,8 +8,8 @@ import { MsalProvider } from "@azure/msal-react";
 const msalConfig = {
   auth: {
     clientId: "1e8189e9-e9a6-4b1c-b1ba-0a827bea564f", // 🔹 Replace this with your Azure App ID
-    //authority: "https://login.microsoftonline.com/common",
-    authority: "https://login.microsoftonline.com/ed5a80e6-e7e0-45f7-b0d0-a026d48e56f0",
+    authority: "https://login.microsoftonline.com/common",
+    //authority: "https://login.microsoftonline.com/ed5a80e6-e7e0-45f7-b0d0-a026d48e56f0",
     redirectUri: window.location.origin,
   },
 };
