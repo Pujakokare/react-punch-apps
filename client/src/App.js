@@ -1,12 +1,9 @@
-// client/src/App.js
 import React, { useEffect, useState } from "react";
 import "./App.css";
-import { PublicClientApplication } from "@azure/msal-browser";
-import { msalConfig, loginRequest } from "./authConfig";
+import { useMsal, useIsAuthenticated } from "@azure/msal-react";
+import { loginRequest } from "./authConfig";
 
-const API_BASE = process.env.REACT_APP_API_BASE || "";
-
-const msalInstance = new PublicClientApplication(msalConfig);
+const API_BASE = process.env.REACT_APP_API_BASE || ""; // e.g., "https://your-server.onrender.com"
 
 function useLocalTime() {
   try {
@@ -24,66 +21,28 @@ function isoFromInput(value) {
   return dt.toISOString();
 }
 
-function timeGreetingByHour(hour) {
-  if (hour < 12) return "Good morning";
-  if (hour < 17) return "Good afternoon";
-  return "Good evening";
+function AccountInfo({ account }) {
+  if (!account) return null;
+  return (
+    <div className="account-info">
+      <div><strong>{account.name}</strong></div>
+      <div style={{fontSize:12,color:"#555"}}>{account.username}</div>
+    </div>
+  );
 }
 
 export default function App() {
-  const [account, setAccount] = useState(null); // holds name/email
+  const { instance, accounts } = useMsal();
+  const isAuthenticated = useIsAuthenticated();
+  const account = accounts && accounts.length > 0 ? accounts[0] : null;
+
   const [punches, setPunches] = useState([]);
   const [manualInput, setManualInput] = useState("");
   const [note, setNote] = useState("");
   const [loading, setLoading] = useState(false);
+  const [greeting, setGreeting] = useState("");
   const localIso = useLocalTime();
   const [useLocal, setUseLocal] = useState(!!localIso);
-  const [greetingVisible, setGreetingVisible] = useState("");
-  const [isDarkVariant, setIsDarkVariant] = useState(false);
-
-
-    // For backend API calls — update this to your deployed backend URL if needed
-  const API_BASE = "";
-  
-  // init: if user session exists
-  useEffect(() => {
-    const accounts = msalInstance.getAllAccounts();
-    if (accounts && accounts.length > 0) {
-      setAccount(accounts[0]);
-    }
-    fetchPunches();
-    // read theme from localStorage
-    const saved = localStorage.getItem("punch_theme_dark");
-    setIsDarkVariant(saved === "true");
-  }, []);
-
-  // login
-  async function signIn() {
-    try {
-      const result = await msalInstance.loginPopup(loginRequest);
-      if (result && result.account) {
-        setAccount(result.account);
-      }
-    } catch (err) {
-      console.error("Login failed", err);
-      alert("Login failed: " + (err.message || err));
-    }
-  }
-
-  function signOut() {
-    const logoutRequest = {
-      account: msalInstance.getActiveAccount() || account
-    };
-    try {
-      msalInstance.logoutPopup(logoutRequest).then(() => {
-        setAccount(null);
-        // clear any app-only data if needed
-      });
-    } catch (err) {
-      console.warn("Logout error", err);
-      setAccount(null);
-    }
-  }
 
   async function fetchPunches() {
     setLoading(true);
@@ -98,16 +57,38 @@ export default function App() {
     }
   }
 
-  function showPersonalGreeting() {
+  useEffect(() => {
+    fetchPunches();
+  }, []);
+
+  function getGreeting() {
     const hour = new Date().getHours();
-    const base = timeGreetingByHour(hour);
-    const name = account?.name || account?.username || "";
-    const msg = `${base}${name ? ", " + name : "!"}`;
-    setGreetingVisible(msg);
-    setTimeout(() => setGreetingVisible(""), 4000);
+    if (hour < 12) return "Good morning ☀️";
+    if (hour < 17) return "Good afternoon 🌤️";
+    return "Good evening 🌙";
+  }
+
+  async function handleLogin() {
+    try {
+      await instance.loginPopup(loginRequest);
+      // after login, fetch any further info if needed
+      await fetchPunches();
+    } catch (err) {
+      console.error(err);
+      alert("Login failed");
+    }
+  }
+
+  function handleLogout() {
+    instance.logoutPopup();
   }
 
   async function submitPunch() {
+    if (!isAuthenticated || !account) {
+      alert("Please sign in with your Office 365 account first.");
+      return;
+    }
+
     let timeIso = null;
     if (useLocal && localIso) timeIso = localIso;
     else timeIso = isoFromInput(manualInput);
@@ -117,16 +98,20 @@ export default function App() {
       return;
     }
 
+    const user = {
+      name: account.name,
+      email: account.username
+    };
+
     try {
-      // optional: attach bearer token later if you want to secure server calls
       const res = await fetch(API_BASE + "/api/punch", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ time: timeIso, note })
+        body: JSON.stringify({ time: timeIso, note, user })
       });
 
       if (!res.ok) {
-        const err = await res.json().catch(() => ({}));
+        const err = await res.json();
         alert("Failed to save: " + (err.error || res.statusText));
         return;
       }
@@ -135,127 +120,120 @@ export default function App() {
       setManualInput("");
       await fetchPunches();
 
-      // show greeting after successful punch
-      showPersonalGreeting();
+      const msg = getGreeting();
+      setGreeting(msg);
+      setTimeout(() => setGreeting(""), 4000);
     } catch (e) {
       console.error("Save failed", e);
       alert("Save failed");
     }
   }
 
-  function toggleTheme() {
-    const next = !isDarkVariant;
-    setIsDarkVariant(next);
-    localStorage.setItem("punch_theme_dark", String(next));
-  }
-
   return (
-    <div className={`app-root ${isDarkVariant ? "dark-variant" : "light-variant"}`}>
-      <header className="site-header">
-        <h1>⏰ Punch In</h1>
-        <div className="header-right">
-          {account ? (
-            <>
-              <div className="user-info">
-                <div className="user-name">{account.name}</div>
-                <div className="user-email">{account.username}</div>
-              </div>
-              <button className="btn link" onClick={signOut}>Sign out</button>
-            </>
+    <div className="app-container">
+      <header style={{width:"100%", maxWidth:900, display:"flex", justifyContent:"space-between", alignItems:"center"}}>
+        <div>
+          <h1 style={{margin:0}}>⏰ Punch In</h1>
+          {account && <div style={{fontSize:12,color:"#555"}}>Welcome, {account.name}</div>}
+        </div>
+
+        <div style={{display:"flex",alignItems:"center",gap:12}}>
+          <AccountInfo account={account} />
+          {!isAuthenticated ? (
+            <button onClick={handleLogin}>Sign in with Office 365</button>
           ) : (
-            <button className="btn" onClick={signIn}>Sign in with Office 365</button>
+            <button onClick={handleLogout}>Sign out</button>
           )}
-          <button className="btn small" onClick={toggleTheme}>
-            Theme: {isDarkVariant ? "Gradient Dark" : "Gradient Light"}
-          </button>
         </div>
       </header>
 
-      {greetingVisible && <div className="greeting">{greetingVisible}</div>}
+      {greeting && <div className="greeting">{greeting}</div>}
 
-      <main className="main-content">
-        <div className="punch-card">
-          <div className="row">
-            <label>
-              <input
-                type="checkbox"
-                checked={useLocal}
-                onChange={() => setUseLocal((v) => !v)}
-              />
-              Use local time (
-              {localIso ? new Date(localIso).toLocaleString() : "not available"})
-            </label>
-          </div>
-
-          {!useLocal && (
-            <div className="row">
-              <label>
-                Manual time:
-                <input
-                  type="datetime-local"
-                  value={manualInput}
-                  onChange={(e) => setManualInput(e.target.value)}
-                />
-              </label>
-            </div>
-          )}
-
-          <div className="row">
-            <label>
-              Note (optional):
-              <input
-                value={note}
-                onChange={(e) => setNote(e.target.value)}
-                placeholder="e.g., start shift"
-              />
-            </label>
-          </div>
-
-          <div className="row buttons">
-            <button onClick={submitPunch}>Punch In</button>
-            <button onClick={fetchPunches}>Refresh</button>
-          </div>
+      <div className="punch-card">
+        <div className="row">
+          <label>
+            <input
+              type="checkbox"
+              checked={useLocal}
+              onChange={() => setUseLocal((v) => !v)}
+            />
+            Use local time (
+            {localIso ? new Date(localIso).toLocaleString() : "not available"})
+          </label>
         </div>
 
-        <section className="table-section">
-          <h2>🗓️ Recent Punches</h2>
-          <div className="table-container">
-            {loading ? (
-              <div>Loading...</div>
-            ) : punches.length === 0 ? (
-              <div>No punches yet.</div>
-            ) : (
-              <table>
-                <thead>
-                  <tr>
-                    <th>#</th>
-                    <th>Punch Time</th>
-                    <th>Note</th>
-                    <th>Recorded At</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {punches.map((p, i) => (
-                    <tr key={i}>
-                      <td>{i + 1}</td>
-                      <td>{new Date(p.time).toLocaleString()}</td>
-                      <td>{p.note || "—"}</td>
-                      <td>{p.createdAt ? new Date(p.createdAt).toLocaleString() : "—"}</td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            )}
+        {!useLocal && (
+          <div className="row">
+            <label>
+              Manual time:
+              <input
+                type="datetime-local"
+                value={manualInput}
+                onChange={(e) => setManualInput(e.target.value)}
+              />
+            </label>
           </div>
-        </section>
-      </main>
+        )}
 
-      <footer className="site-footer">
+        <div className="row">
+          <label>
+            Note (optional):
+            <input
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="e.g., start shift"
+            />
+          </label>
+        </div>
+
+        <div className="row buttons">
+          <button onClick={submitPunch}>Punch In</button>
+          <button onClick={fetchPunches}>Refresh</button>
+        </div>
+      </div>
+
+      <h2>🗓️ Recent Punches</h2>
+
+      <div className="table-container">
+        {loading ? (
+          <div>Loading...</div>
+        ) : punches.length === 0 ? (
+          <div>No punches yet.</div>
+        ) : (
+          <table>
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Punch Time</th>
+                <th>Note</th>
+                <th>User</th>
+                <th>Recorded At</th>
+              </tr>
+            </thead>
+            <tbody>
+              {punches.map((p, i) => (
+                <tr key={i}>
+                  <td>{i + 1}</td>
+                  <td>{new Date(p.time).toLocaleString()}</td>
+                  <td>{p.note || "—"}</td>
+                  <td>{p.user ? `${p.user.name} (${p.user.email})` : "—"}</td>
+                  <td>
+                    {p.createdAt ? new Date(p.createdAt).toLocaleString() : "—"}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        )}
+      </div>
+
+      <footer>
         <small>Times stored in UTC (ISO). Displayed in your local time zone.</small>
       </footer>
     </div>
   );
 }
+
 
 
 
