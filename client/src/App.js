@@ -1,166 +1,91 @@
-import React, { useState, useEffect } from "react";
-import "./App.css";
+import React, { useEffect, useState } from "react";
 import { PublicClientApplication } from "@azure/msal-browser";
-import { msalConfig, loginRequest } from "./authConfig";
+import PunchInPage from "./PunchInPage"; // the page that shows punch UI
 
-const API_BASE = process.env.REACT_APP_API_BASE || "";
+const msalConfig = {
+  auth: {
+    clientId: "YOUR_CLIENT_ID", // replace with Azure App ID
+    authority: "https://login.microsoftonline.com/common",
+    redirectUri: window.location.origin,
+  },
+};
+
 const msalInstance = new PublicClientApplication(msalConfig);
 
 export default function App() {
-  const [account, setAccount] = useState(null);
-  const [punches, setPunches] = useState([]);
-  const [note, setNote] = useState("");
-  const [manualInput, setManualInput] = useState("");
-  const [useLocal, setUseLocal] = useState(true);
-  const [darkMode, setDarkMode] = useState(false);
+  const [user, setUser] = useState(null);
+  const [theme, setTheme] = useState("light");
 
-  const localIso = new Date().toISOString();
-
-  // -------- Microsoft Login ----------
   useEffect(() => {
     const accounts = msalInstance.getAllAccounts();
-    if (accounts.length > 0) setAccount(accounts[0]);
+    if (accounts.length > 0) {
+      setUser(accounts[0]);
+    }
   }, []);
 
-  async function handleLogin() {
+  const login = async () => {
     try {
-      const response = await msalInstance.loginPopup(loginRequest);
-      setAccount(response.account);
+      const loginResponse = await msalInstance.loginPopup({
+        scopes: ["User.Read"],
+      });
+      setUser(loginResponse.account);
     } catch (err) {
-      console.error("Login failed", err);
+      console.error(err);
+      alert("Login failed. Check console for details.");
     }
-  }
+  };
 
-  function handleLogout() {
-    msalInstance.logout();
-  }
+  const logout = () => {
+    msalInstance.logoutPopup();
+    setUser(null);
+  };
 
-  // -------- Fetch & Save Punches ----------
-  async function fetchPunches() {
-    const r = await fetch(API_BASE + "/api/punches");
-    const data = await r.json();
-    setPunches(data);
-  }
+  const toggleTheme = () => {
+    setTheme(theme === "light" ? "dark" : "light");
+  };
 
-  useEffect(() => { fetchPunches(); }, []);
-
-  async function submitPunch() {
-    const time = useLocal ? localIso : new Date(manualInput).toISOString();
-    if (!time) { alert("Please select time"); return; }
-
-    await fetch(API_BASE + "/api/punch", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ time, note })
-    });
-    setNote("");
-    fetchPunches();
-  }
-
-  function getGreeting() {
-    const h = new Date().getHours();
-    if (h < 12) return "Good morning";
-    if (h < 17) return "Good afternoon";
-    return "Good evening";
-  }
-
-  // ---------- UI ----------
-  if (!account) {
+  if (!user) {
     return (
-      <div className={`login-page ${darkMode ? "dark" : ""}`}>
-        <div className="theme-toggle" onClick={() => setDarkMode(d => !d)}>
-          {darkMode ? "🌞 Light" : "🌙 Dark"}
+      <div className={`login-screen ${theme}`}>
+        <div className="theme-toggle" onClick={toggleTheme}>
+          {theme === "light" ? "🌙 Dark" : "☀️ Light"}
         </div>
-        <div className="login-box">
+
+        <div className="login-card">
           <h1>Welcome to Punch App</h1>
-          <button onClick={handleLogin}>Login with Office 365</button>
+          <button onClick={login}>Login with Office 365</button>
         </div>
       </div>
     );
   }
 
+  // 🌞 Personalized greeting based on time
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12
+      ? "Good morning"
+      : hour < 18
+      ? "Good afternoon"
+      : "Good evening";
+
   return (
-    <div className={`app-container ${darkMode ? "dark" : ""}`}>
-      <header>
-        <div className="user-info">
-          <h2>{getGreeting()}, {account.name?.split(" ")[0]} 👋</h2>
-          <p>{account.username}</p>
+    <div className={`app-container ${theme}`}>
+      <div className="top-bar">
+        <div className="greeting">
+          👋 {greeting}, <strong>{user.name || user.username}</strong>
         </div>
-        <div>
-          <button onClick={() => setDarkMode(d => !d)}>
-            {darkMode ? "🌞 Light" : "🌙 Dark"}
-          </button>
-          <button onClick={handleLogout}>Logout</button>
-        </div>
-      </header>
+        <button className="logout" onClick={logout}>
+          Logout
+        </button>
+        <button className="theme-btn" onClick={toggleTheme}>
+          {theme === "light" ? "🌙" : "☀️"}
+        </button>
+      </div>
 
-      <section className="punch-section">
-        <h3>Punch In</h3>
-        <label>
-          <input
-            type="checkbox"
-            checked={useLocal}
-            onChange={() => setUseLocal(v => !v)}
-          /> Use Local Time
-        </label>
-
-        {!useLocal && (
-          <input
-            type="datetime-local"
-            value={manualInput}
-            onChange={e => setManualInput(e.target.value)}
-          />
-        )}
-
-        <input
-          type="text"
-          placeholder="Note (optional)"
-          value={note}
-          onChange={e => setNote(e.target.value)}
-        />
-
-        <button onClick={submitPunch}>Punch In</button>
-      </section>
-
-      <section className="table-container">
-        <h3>Recent Punches</h3>
-        <table>
-          <thead>
-            <tr>
-              <th>#</th>
-              <th>Punch Time</th>
-              <th>Note</th>
-            </tr>
-          </thead>
-          <tbody>
-            {punches.map((p, i) => (
-              <tr key={i}>
-                <td>{i + 1}</td>
-                <td>{new Date(p.time).toLocaleString()}</td>
-                <td>{p.note || "—"}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
+      <PunchInPage />
     </div>
   );
 }
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 
 
 
