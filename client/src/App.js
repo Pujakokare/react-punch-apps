@@ -1,48 +1,51 @@
 import React, { useEffect, useState } from "react";
-import { PublicClientApplication } from "@azure/msal-browser";
-import PunchInPage from "./PunchInPage"; // the page that shows punch UI
-
-const msalConfig = {
-  auth: {
-    clientId: "YOUR_CLIENT_ID", // replace with Azure App ID
-    authority: "https://login.microsoftonline.com/common",
-    redirectUri: window.location.origin,
-  },
-};
-
-const msalInstance = new PublicClientApplication(msalConfig);
+import { useMsal } from "@azure/msal-react";
+import PunchInPage from "./PunchInPage";
 
 export default function App() {
+  const { instance, accounts } = useMsal();
   const [user, setUser] = useState(null);
   const [theme, setTheme] = useState("light");
 
   useEffect(() => {
-    const accounts = msalInstance.getAllAccounts();
     if (accounts.length > 0) {
       setUser(accounts[0]);
     }
-  }, []);
+  }, [accounts]);
 
   const login = async () => {
     try {
-      const loginResponse = await msalInstance.loginPopup({
+      const response = await instance.loginPopup({
         scopes: ["User.Read"],
       });
-      setUser(loginResponse.account);
+      setUser(response.account);
     } catch (err) {
       console.error(err);
       alert("Login failed. Check console for details.");
     }
   };
 
-  const logout = () => {
-    msalInstance.logoutPopup();
-    setUser(null);
+  const logout = async () => {
+    try {
+      await instance.logoutPopup();
+      setUser(null);
+    } catch (err) {
+      console.error("Logout failed:", err);
+    }
   };
 
   const toggleTheme = () => {
     setTheme(theme === "light" ? "dark" : "light");
   };
+
+  // Personalized greeting
+  const hour = new Date().getHours();
+  const greeting =
+    hour < 12
+      ? "Good morning"
+      : hour < 18
+      ? "Good afternoon"
+      : "Good evening";
 
   if (!user) {
     return (
@@ -59,20 +62,13 @@ export default function App() {
     );
   }
 
-  // 🌞 Personalized greeting based on time
-  const hour = new Date().getHours();
-  const greeting =
-    hour < 12
-      ? "Good morning"
-      : hour < 18
-      ? "Good afternoon"
-      : "Good evening";
-
   return (
     <div className={`app-container ${theme}`}>
       <div className="top-bar">
         <div className="greeting">
           👋 {greeting}, <strong>{user.name || user.username}</strong>
+          <br />
+          <small>{user.username}</small>
         </div>
         <button className="logout" onClick={logout}>
           Logout
