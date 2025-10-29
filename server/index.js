@@ -19,24 +19,56 @@ app.get("/healthcheck", (req, res) => {
 });
 
 // ✅ Save punch
+// app.post("/api/punch", (req, res) => {
+//   try {
+//     //const { punchTime } = req.body;
+//     const punchTime = req.body.punchTime || req.body.time;
+//     const note = req.body.note || "";
+
+//     // Validate input
+//     if (!punchTime) {
+//       return res.status(400).json({ error: "punchTime is required" });
+//     }
+
+//     const id = `punch_${Date.now()}`;
+//     //const punch = { id, punchTime };
+//     const punch = { id, time: punchTime, note, createdAt: new Date().toISOString() };
+//     punches.push(punch);
+
+//     console.log("✅ Punch saved:", punch);
+//     //res.json({ success: true, id });
+//     res.json({ success: true, punch });
+//   } catch (err) {
+//     console.error("❌ Error saving punch:", err);
+//     res.status(500).json({ error: "Internal server error" });
+//   }
+// });
+
+// // ✅ Get all punches
+// app.get("/api/punches", (req, res) => {
+//   res.json(punches);
+// });
+
+// Save punch - expects { time, note, user }
 app.post("/api/punch", (req, res) => {
   try {
-    //const { punchTime } = req.body;
-    const punchTime = req.body.punchTime || req.body.time;
+    const time = req.body.time || req.body.punchTime;
     const note = req.body.note || "";
+    const user = req.body.user || null; // { name, email } expected
 
-    // Validate input
-    if (!punchTime) {
-      return res.status(400).json({ error: "punchTime is required" });
-    }
+    if (!time) return res.status(400).json({ error: "time is required" });
 
     const id = `punch_${Date.now()}`;
-    //const punch = { id, punchTime };
-    const punch = { id, time: punchTime, note, createdAt: new Date().toISOString() };
+    const punch = {
+      id,
+      time,
+      note,
+      user,
+      createdAt: new Date().toISOString()
+    };
     punches.push(punch);
 
     console.log("✅ Punch saved:", punch);
-    //res.json({ success: true, id });
     res.json({ success: true, punch });
   } catch (err) {
     console.error("❌ Error saving punch:", err);
@@ -44,10 +76,22 @@ app.post("/api/punch", (req, res) => {
   }
 });
 
-// ✅ Get all punches
 app.get("/api/punches", (req, res) => {
-  res.json(punches);
+  // Return most recent first
+  const sorted = [...punches].sort((a,b) => (a.time < b.time ? 1 : -1));
+  res.json(sorted);
 });
+
+
+
+
+
+
+
+
+
+
+
 
 // ✅ Catch-all route for React
 app.get("*", (req, res) => {
