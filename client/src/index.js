@@ -7,7 +7,7 @@ import { MsalProvider } from "@azure/msal-react";
 
 const msalConfig = {
   auth: {
-    clientId: "1e8189e9-e9a6-4b1c-b1ba-0a827bea564f",
+    clientId: "1e8189e9-e9a6-4b1c-b1ba-0a827bea564f", // 🔹 Replace this with your Azure App ID
     authority: "https://login.microsoftonline.com/common",
     redirectUri: window.location.origin,
   },
@@ -15,20 +15,44 @@ const msalConfig = {
 
 const msalInstance = new PublicClientApplication(msalConfig);
 
-async function initMSAL() {
-  // Ensure MSAL is initialized before rendering app
-  await msalInstance.initialize();
+async function renderApp() {
+  try {
+    // 👇 Ensure MSAL is initialized before rendering
+    await msalInstance.initialize();
 
-  const root = ReactDOM.createRoot(document.getElementById("root"));
-  root.render(
-    <MsalProvider instance={msalInstance}>
-      <App />
-    </MsalProvider>
-  );
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(
+      <React.StrictMode>
+        <MsalProvider instance={msalInstance}>
+          <App />
+        </MsalProvider>
+      </React.StrictMode>
+    );
+  } catch (err) {
+    console.error("❌ MSAL failed to initialize:", err);
+    const root = ReactDOM.createRoot(document.getElementById("root"));
+    root.render(
+      <div
+        style={{
+          display: "flex",
+          height: "100vh",
+          justifyContent: "center",
+          alignItems: "center",
+          flexDirection: "column",
+          color: "#fff",
+          background:
+            "linear-gradient(135deg, #667eea, #764ba2, #6B8DD6, #8E37D7)",
+        }}
+      >
+        <h2>⚠️ App initialization failed</h2>
+        <p>{err.message}</p>
+      </div>
+    );
+  }
 }
 
-initMSAL();
-
+// Run it
+renderApp();
 
 
 // import React from 'react';
