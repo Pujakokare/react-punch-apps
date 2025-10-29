@@ -13,10 +13,12 @@
 
   },
   "scripts": {
-    "start": "react-scripts start",
-    "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
     "eject": "react-scripts eject"
+     "build": "cd client && npm install && npm run build && cd ../server && npm install",
+     "start": "cd server && node index.js"
   }
 }
 
+ //"start": "react-scripts start",
+    //"build": "react-scripts build",
