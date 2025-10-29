@@ -7,7 +7,7 @@ import { MsalProvider } from "@azure/msal-react";
 
 const msalConfig = {
   auth: {
-    clientId: "YOUR_AZURE_AD_CLIENT_ID",
+    clientId: "1e8189e9-e9a6-4b1c-b1ba-0a827bea564f",
     authority: "https://login.microsoftonline.com/common",
     redirectUri: window.location.origin,
   },
