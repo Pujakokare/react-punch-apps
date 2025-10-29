@@ -70,6 +70,90 @@ body, html {
   font-size: 18px;
   cursor: pointer;
 }
+/* Punch In Page */
+.punch-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 40px;
+  animation: fadeIn 1s ease-in;
+}
+
+.title {
+  font-size: 2rem;
+  margin-bottom: 10px;
+}
+
+.greeting-text {
+  font-size: 1.2rem;
+  color: #ffd700;
+  margin-bottom: 20px;
+}
+
+.punch-card {
+  background: rgba(255, 255, 255, 0.15);
+  padding: 25px 40px;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.3);
+  text-align: center;
+  backdrop-filter: blur(10px);
+  margin-bottom: 40px;
+}
+
+.punch-btn {
+  background: #00c6ff;
+  background: linear-gradient(to right, #0072ff, #00c6ff);
+  color: white;
+  border: none;
+  padding: 10px 20px;
+  font-weight: 600;
+  border-radius: 10px;
+  cursor: pointer;
+  margin-top: 15px;
+  transition: transform 0.2s;
+}
+
+.punch-btn:hover {
+  transform: scale(1.05);
+}
+
+.success-msg {
+  margin-top: 10px;
+  color: #32cd32;
+  font-weight: bold;
+}
+
+.table-container {
+  width: 80%;
+  max-width: 600px;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
+}
+
+.punch-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: center;
+}
+
+.punch-table th,
+.punch-table td {
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  padding: 10px;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
 
 
 
