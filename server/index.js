@@ -6,7 +6,18 @@ const { connectCouchbase, getCollection } = require('./couchbase');
 const { validateToken } = require('./authMiddleware'); // new
 
 const app = express();
-app.use(cors());
+// app.use(cors());
+app.use(
+  cors({
+    origin: [
+      "https://react-punch-app-1a2x.onrender.com", // frontend Render URL
+      "http://localhost:3000",                     // optional for local testing
+    ],
+    methods: ["GET", "POST"],
+    credentials: true,
+  })
+);
+
 app.use(express.json());
 
 // Connect to Couchbase etc.
