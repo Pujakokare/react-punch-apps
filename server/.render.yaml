@@ -8,14 +8,17 @@
 #       NODE_VERSION: 20.15.0
 services:
   - type: web
-    name: react-punch-client
-    env: static
-    buildCommand: npm install && npm run build
-    staticPublishPath: client/build
-
-  - type: web
-    name: react-punch-server
+    name: react-punch-app
     env: node
-    buildCommand: npm install
-    startCommand: node index.js
-
+    buildCommand: |
+      cd client
+      rm -rf node_modules package-lock.json
+      npm install --legacy-peer-deps
+      npm run build
+      cd ../server
+      rm -rf node_modules package-lock.json
+      npm install --legacy-peer-deps
+    startCommand: |
+      cd server && node index.js
+    envVars:
+      NODE_VERSION: 20.15.0
