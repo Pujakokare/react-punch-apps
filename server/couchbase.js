@@ -23,7 +23,7 @@ let collection;
 async function connectCouchbase() {
   if (cluster) return; // already connected
   try {
-    cluster = await couchbase.connect(process.env.COUCHBASE_CONNECTION_STRING, {
+    cluster = await couchbase.connect(process.env.COUCHBASE_CONNSTR, {
       username: process.env.COUCHBASE_USERNAME,
       password: process.env.COUCHBASE_PASSWORD,
     });
