@@ -12,7 +12,7 @@ export const msalConfig = {
 };
 
 export const loginRequest = {
-  scopes: ["openid", "profile", "email"]
+  scopes: ["openid", "profile", "email", "api://1e8189e9-e9a6-4b1c-b1ba-0a827bea564f/access_as_user"]
 };
 
 // if you call MS Graph or other custom scopes, include them in scopes array when acquiring token
