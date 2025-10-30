@@ -1,8 +1,24 @@
+# services:
+#   - type: web
+#     name: react-punch-app
+#     env: node
+#     buildCommand: cd client && npm install && npm run build && cd ../server && npm install
+#     startCommand: cd server && node index.js
+#     envVars:
+#       NODE_VERSION: 20.15.0
 services:
   - type: web
     name: react-punch-app
     env: node
-    buildCommand: cd client && npm install && npm run build && cd ../server && npm install
-    startCommand: cd server && node index.js
+    buildCommand: |
+      cd client
+      rm -rf node_modules package-lock.json
+      npm install --legacy-peer-deps
+      npm run build
+      cd ../server
+      rm -rf node_modules package-lock.json
+      npm install --legacy-peer-deps
+    startCommand: |
+      cd server && node index.js
     envVars:
       NODE_VERSION: 20.15.0
