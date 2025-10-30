@@ -1,7 +1,8 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-const { connectCouchbase, getCollection } = require('couchbase');
+//const { connectCouchbase, getCollection } = require('couchbase');
+const { connectCouchbase, getCollection } = require('./couchbase');
 const { validateToken } = require('./authMiddleware'); // new
 
 const app = express();
