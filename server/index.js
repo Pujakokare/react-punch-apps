@@ -1,20 +1,21 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
-//const { connectCouchbase, getCollection } = require('couchbase');
 const { connectCouchbase, getCollection } = require('./couchbase');
-const { validateToken } = require('./authMiddleware'); // new
+const { validateToken } = require('./authMiddleware');
 
 const app = express();
-// app.use(cors());
+
+// ✅ Allow only your frontend
 app.use(
   cors({
     origin: [
-      "https://react-punch-app-1a2x.onrender.com", // frontend Render URL
-      "http://localhost:3000",                     // optional for local testing
+      'https://react-punch-app-1a2x.onrender.com', // your frontend
+      'http://localhost:3000' // optional for local dev
     ],
-    methods: ["GET", "POST"],
-    credentials: true,
+    methods: ['GET', 'POST'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+    credentials: true
   })
 );
 
