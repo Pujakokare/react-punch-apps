@@ -1,9 +1,9 @@
 // client/src/authConfig.js
 export const msalConfig = {
   auth: {
-    clientId: process.env.REACT_APP_CLIENT_ID,
+    clientId: process.env.REACT_APP_CLIENT_ID, // from Render env
     authority: `https://login.microsoftonline.com/${process.env.REACT_APP_TENANT_ID}`,
-    redirectUri: window.location.origin
+    redirectUri: window.location.origin // ensure this matches the redirect URI you registered in Azure
   },
   cache: {
     cacheLocation: "sessionStorage",
@@ -15,11 +15,7 @@ export const loginRequest = {
   scopes: ["openid", "profile", "email"]
 };
 
-
-
-
-
-
+// if you call MS Graph or other custom scopes, include them in scopes array when acquiring token
 
 
 
