@@ -9,7 +9,7 @@
 html,body,#root { height:100%; margin:0; 
                  font-family: "Segoe UI", 
                  Roboto, sans-serif;
-                  background: linear-gradient(180deg, #e8f0fe 0%, #ffffff 50%), url('/theme-bg.jpg') no-repeat center/cover;
+                  background: linear-gradient(180deg, #e8f0fe 0%, #ffffff 50%);
   color: #222;}
 
 
