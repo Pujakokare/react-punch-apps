@@ -2,23 +2,18 @@
   "name": "react-punch-app-client",
   "version": "1.0.0",
   "private": true,
-  "engines": {
-  "node": "20.15.0"
-},
   "dependencies": {
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-scripts": "5.0.1",
-    "@azure/msal-browser": "^2.38.2",
-    "@azure/msal-react": "^2.0.15"
-
+    "ajv": "^6.12.6",
+    "ajv-keywords": "^3.5.2"
   },
   "scripts": {
     "start": "react-scripts start",
     "build": "react-scripts build",
-    "test": "react-scripts test --env=jsdom",
+    "test": "react-scripts test",
     "eject": "react-scripts eject"
   }
 }
 
- 
