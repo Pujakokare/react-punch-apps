@@ -13,8 +13,9 @@ app.use(
       'https://react-punch-app-1a2x.onrender.com', // your frontend
       'http://localhost:3000' // optional for local dev
     ],
-    methods: ['GET', 'POST'],
-    allowedHeaders: ['Content-Type', 'Authorization'],
+   // methods: ['GET', 'POST'],
+    methods: ["GET", "POST", "PUT", "DELETE"],
+   // allowedHeaders: ['Content-Type', 'Authorization'],
     credentials: true
   })
 );
