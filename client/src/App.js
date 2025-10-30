@@ -1,205 +1,120 @@
-import React, { useEffect, useState } from "react";
-import { PublicClientApplication } from "@azure/msal-browser";
-import { msalConfig, loginRequest } from "./authConfig";
-import "./App.css";
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useMsal, AuthenticatedTemplate, UnauthenticatedTemplate, useAccount } from "@azure/msal-react";
+import { loginRequest } from './authConfig';
 
-const msalInstance = new PublicClientApplication(msalConfig);
-
-function App() {
-  const [account, setAccount] = useState(null);
-  const [punches, setPunches] = useState([]);
+function SignInButton() {
+  const { instance } = useMsal();
 
   const handleLogin = async () => {
     try {
-      const loginResponse = await msalInstance.loginPopup(loginRequest);
-      setAccount(loginResponse.account);
-    } catch (err) {
-      console.error("Login failed", err);
+      await instance.loginPopup(loginRequest);
+    } catch (e) {
+      console.error(e);
+      // fallback to redirect if popup is blocked: instance.loginRedirect(loginRequest)
     }
   };
 
-  const handleLogout = () => {
-    msalInstance.logoutPopup();
-    setAccount(null);
-  };
+  return <button onClick={handleLogin}>Sign in with Office 365</button>;
+}
 
-  const handlePunch = async () => {
+function SignOutButton() {
+  const { instance } = useMsal();
+  const handleLogout = () => instance.logoutPopup().catch(e => console.error(e));
+  return <button onClick={handleLogout}>Sign out</button>;
+}
+
+export default function App() {
+  const { instance, accounts } = useMsal();
+  const account = accounts[0] || null;
+  const [punches, setPunches] = useState([]);
+  const [manualTime, setManualTime] = useState('');
+
+  const backendURL = window.location.origin;
+
+  async function fetchPunches() {
     try {
-      const tokenResponse = await msalInstance.acquireTokenSilent({
-        ...loginRequest,
-        account: account
-      });
-
-      const token = tokenResponse.accessToken;
-      const res = await fetch("/api/punch", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
-        },
-        body: JSON.stringify({ time: new Date().toISOString() })
-      });
-
-      const data = await res.json();
-      alert(`✅ Punch recorded at ${data.time}`);
+      // call backend - will be unauthenticated read or can be protected if you wish
+      const res = await axios.get(`${backendURL}/api/punches`);
+      setPunches(res.data);
     } catch (err) {
-      console.error("Punch failed", err);
+      console.error('fetchPunches', err);
     }
-  };
-
-  const fetchPunches = async () => {
-    const res = await fetch("/api/punches");
-    const data = await res.json();
-    setPunches(data);
-  };
+  }
 
   useEffect(() => {
     fetchPunches();
   }, []);
 
+  async function punchIn() {
+    try {
+      // Get an access token for our backend. For this simple setup, request the OIDC scopes.
+      // If you created an API and exposed scopes, you should request that scope instead.
+      const request = {
+        scopes: ["openid", "profile", "email"]
+      };
+
+      // Acquire token silently (or interactive fallback)
+      let result;
+      try {
+        result = await instance.acquireTokenSilent({
+          ...request,
+          account
+        });
+      } catch (e) {
+        // interactive fallback
+        result = await instance.acquireTokenPopup(request);
+      }
+
+      const token = result.accessToken;
+      const timeToSave = manualTime || new Date().toISOString();
+
+      await axios.post(`${backendURL}/api/punch`, { time: timeToSave }, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+
+      setManualTime('');
+      fetchPunches();
+    } catch (err) {
+      console.error('punchIn error', err);
+      alert('Failed to punch in. Check console.');
+    }
+  }
+
   return (
-    <div className="App">
-      <h1>🏢 React Punch-In System</h1>
-      {!account ? (
-        <button onClick={handleLogin}>🔐 Sign in with Microsoft</button>
-      ) : (
-        <>
-          <p>Welcome, {account.username}</p>
-          <button onClick={handleLogout}>Logout</button>
-          <button onClick={handlePunch}>👊 Punch In</button>
-          <hr />
-          <h3>Last 50 Punches</h3>
-          <ul>
-            {punches.map((p) => (
-              <li key={p.id}>{p.user} — {new Date(p.time).toLocaleString()}</li>
-            ))}
-          </ul>
-        </>
-      )}
+    <div className="container">
+      <h2>⏰ Punch In App</h2>
+
+      <AuthenticatedTemplate>
+        <p>Signed in as: <strong>{account ? account.username : 'Unknown'}</strong></p>
+        <SignOutButton />
+      </AuthenticatedTemplate>
+
+      <UnauthenticatedTemplate>
+        <p>Please sign-in to Punch In</p>
+        <SignInButton />
+      </UnauthenticatedTemplate>
+
+      <p><strong>Local Time:</strong> {new Date().toLocaleString()}</p>
+
+      <input
+        type="text"
+        placeholder="Optional manual time (ISO or readable string)"
+        value={manualTime}
+        onChange={(e) => setManualTime(e.target.value)}
+      />
+
+      <div>
+        <button onClick={punchIn}>Punch In</button>
+      </div>
+
+      <h3>Recent Punches</h3>
+      <ul style={{ textAlign: 'left' }}>
+        {punches.map((p, i) => (<li key={i}>{p.time} {p.user ? `(${p.user})` : ''}</li>))}
+      </ul>
     </div>
   );
 }
-
-export default App;
-
-
-// import React, { useEffect, useState } from 'react';
-// import axios from 'axios';
-// import { useMsal, AuthenticatedTemplate, UnauthenticatedTemplate, useAccount } from "@azure/msal-react";
-// import { loginRequest } from './authConfig';
-
-// function SignInButton() {
-//   const { instance } = useMsal();
-
-//   const handleLogin = async () => {
-//     try {
-//       await instance.loginPopup(loginRequest);
-//     } catch (e) {
-//       console.error(e);
-//       // fallback to redirect if popup is blocked: instance.loginRedirect(loginRequest)
-//     }
-//   };
-
-//   return <button onClick={handleLogin}>Sign in with Office 365</button>;
-// }
-
-// function SignOutButton() {
-//   const { instance } = useMsal();
-//   const handleLogout = () => instance.logoutPopup().catch(e => console.error(e));
-//   return <button onClick={handleLogout}>Sign out</button>;
-// }
-
-// export default function App() {
-//   const { instance, accounts } = useMsal();
-//   const account = accounts[0] || null;
-//   const [punches, setPunches] = useState([]);
-//   const [manualTime, setManualTime] = useState('');
-
-//   const backendURL = window.location.origin;
-
-//   async function fetchPunches() {
-//     try {
-//       // call backend - will be unauthenticated read or can be protected if you wish
-//       const res = await axios.get(`${backendURL}/api/punches`);
-//       setPunches(res.data);
-//     } catch (err) {
-//       console.error('fetchPunches', err);
-//     }
-//   }
-
-//   useEffect(() => {
-//     fetchPunches();
-//   }, []);
-
-//   async function punchIn() {
-//     try {
-//       // Get an access token for our backend. For this simple setup, request the OIDC scopes.
-//       // If you created an API and exposed scopes, you should request that scope instead.
-//       const request = {
-//         scopes: ["openid", "profile", "email"]
-//       };
-
-//       // Acquire token silently (or interactive fallback)
-//       let result;
-//       try {
-//         result = await instance.acquireTokenSilent({
-//           ...request,
-//           account
-//         });
-//       } catch (e) {
-//         // interactive fallback
-//         result = await instance.acquireTokenPopup(request);
-//       }
-
-//       const token = result.accessToken;
-//       const timeToSave = manualTime || new Date().toISOString();
-
-//       await axios.post(`${backendURL}/api/punch`, { time: timeToSave }, {
-//         headers: { Authorization: `Bearer ${token}` }
-//       });
-
-//       setManualTime('');
-//       fetchPunches();
-//     } catch (err) {
-//       console.error('punchIn error', err);
-//       alert('Failed to punch in. Check console.');
-//     }
-//   }
-
-//   return (
-//     <div className="container">
-//       <h2>⏰ Punch In App</h2>
-
-//       <AuthenticatedTemplate>
-//         <p>Signed in as: <strong>{account ? account.username : 'Unknown'}</strong></p>
-//         <SignOutButton />
-//       </AuthenticatedTemplate>
-
-//       <UnauthenticatedTemplate>
-//         <p>Please sign-in to Punch In</p>
-//         <SignInButton />
-//       </UnauthenticatedTemplate>
-
-//       <p><strong>Local Time:</strong> {new Date().toLocaleString()}</p>
-
-//       <input
-//         type="text"
-//         placeholder="Optional manual time (ISO or readable string)"
-//         value={manualTime}
-//         onChange={(e) => setManualTime(e.target.value)}
-//       />
-
-//       <div>
-//         <button onClick={punchIn}>Punch In</button>
-//       </div>
-
-//       <h3>Recent Punches</h3>
-//       <ul style={{ textAlign: 'left' }}>
-//         {punches.map((p, i) => (<li key={i}>{p.time} {p.user ? `(${p.user})` : ''}</li>))}
-//       </ul>
-//     </div>
-//   );
-// }
 
 
 
