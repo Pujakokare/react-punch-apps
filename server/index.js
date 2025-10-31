@@ -7,48 +7,56 @@ const { validateToken } = require("./authMiddleware");
 
 const app = express();
 
-// ✅ 1. CORS Configuration (Fixes your CORS policy issue)
+// ✅ 1. Strict CORS Configuration
 const allowedOrigins = [
-  "https://react-punch-app-1a2x.onrender.com", // your frontend Render URL
-  "http://localhost:3000", // optional for local testing
+  "https://react-punch-app-1a2x.onrender.com", // your frontend Render app
+  "http://localhost:3000", // local dev (optional)
 ];
 
-app.use((req, res, next) => {
-  const origin = req.headers.origin;
-  if (allowedOrigins.includes(origin)) {
-    res.setHeader("Access-Control-Allow-Origin", origin);
-  }
-  res.header(
-    "Access-Control-Allow-Headers",
-    "Origin, X-Requested-With, Content-Type, Accept, Authorization"
-  );
-  res.header("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS");
-  res.header("Access-Control-Allow-Credentials", "true");
-  if (req.method === "OPTIONS") return res.sendStatus(200);
-  next();
-});
+app.use(
+  cors({
+    origin: function (origin, callback) {
+      // allow requests with no origin (like mobile apps or curl)
+      if (!origin) return callback(null, true);
+      if (allowedOrigins.includes(origin)) {
+        return callback(null, true);
+      } else {
+        return callback(new Error("CORS not allowed for this origin"));
+      }
+    },
+    credentials: true,
+    methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+    allowedHeaders: [
+      "Origin",
+      "X-Requested-With",
+      "Content-Type",
+      "Accept",
+      "Authorization",
+    ],
+  })
+);
 
-app.use(cors()); // still use cors middleware
 app.use(express.json());
 
-// ✅ 2. Couchbase Connection
+// ✅ 2. Connect to Couchbase and define routes inside async IIFE
 (async () => {
   try {
     await connectCouchbase();
 
-    // ✅ 3. Punch-in API (Protected by Azure token)
+    // ✅ 3. Punch-In API (Protected by Azure token)
     app.post("/api/punch", validateToken, async (req, res) => {
       try {
         const { time } = req.body;
         if (!time) return res.status(400).json({ error: "time required" });
 
-        // Extract user email or ID from Azure AD token
+        // Extract user identity from Azure token
         const user =
           req.user?.preferred_username ||
           req.user?.upn ||
           req.user?.email ||
           req.user?.oid ||
-          req.user?.sub;
+          req.user?.sub ||
+          "unknown_user";
 
         const collection = getCollection();
         const doc = {
@@ -64,44 +72,49 @@ app.use(express.json());
         await collection.insert(id, doc);
         res.status(201).json({ id, ...doc });
       } catch (err) {
-        console.error("Punch save error:", err);
+        console.error("❌ Punch save error:", err);
         res.status(500).json({ error: "Failed to save punch" });
       }
     });
 
-    // ✅ 4. Fetch Punches API (open or protected as you prefer)
+    // ✅ 4. Fetch Punches API
     app.get("/api/punches", async (req, res) => {
       try {
         const cluster = getCluster();
         const bucketName = process.env.COUCHBASE_BUCKET;
-        const q = `SELECT META().id, p.* FROM \`${bucketName}\` p WHERE p.type='punch' ORDER BY p.createdAt DESC LIMIT 50`;
-        const result = await cluster.query(q);
-        const normalized = result.rows.map((r) => ({
-          id: r.id,
-          ...r.p,
-        }));
-        res.json(normalized);
+        const query = `
+          SELECT META().id, p.*
+          FROM \`${bucketName}\` p
+          WHERE p.type = 'punch'
+          ORDER BY p.createdAt DESC
+          LIMIT 50;
+        `;
+        const result = await cluster.query(query);
+        const punches = result.rows.map((r) => ({ id: r.id, ...r.p }));
+        res.json(punches);
       } catch (err) {
-        console.error("Fetch punches error:", err);
+        console.error("❌ Fetch punches error:", err);
         res.status(500).json({ error: "Failed to fetch punches" });
       }
     });
 
-    // ✅ 5. Serve React Build
+    // ✅ 5. Serve React Build (Render combined setup)
     const clientBuildPath = path.join(__dirname, "..", "client", "build");
     app.use(express.static(clientBuildPath));
-    app.get("*", (req, res) =>
-      res.sendFile(path.join(clientBuildPath, "index.html"))
-    );
+
+    app.get("*", (req, res) => {
+      res.sendFile(path.join(clientBuildPath, "index.html"));
+    });
 
     // ✅ 6. Start Server
-    const PORT = process.env.PORT || 4000;
-    app.listen(PORT, () => console.log(`🚀 Server started on port ${PORT}`));
+    const PORT = process.env.PORT || 10000; // Render usually sets PORT automatically
+    app.listen(PORT, () =>
+      console.log(`🚀 Server started successfully on port ${PORT}`)
+    );
   } catch (err) {
-    console.error("Startup error:", err);
+    console.error("❌ Server startup error:", err);
   }
 })();
-
 
 
 
